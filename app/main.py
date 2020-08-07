@@ -41,6 +41,9 @@ class Bot(commands.Bot):
     def __init__(self, **options):
         super().__init__(**options)
         self.cache = {}
+        self.support_server_url = options.pop('support_server_url')
+        self.source_url = options.pop('source_url')
+
         # _before_invoke is set to None somewhere in the superclass
         self._before_invoke = self.before_invoke
 
@@ -112,6 +115,17 @@ class UsefulHelp(commands.HelpCommand):
 
     async def send_embed(self, embed: discord.Embed) -> discord.Message:
         destination = self.get_destination()
+
+        bot = self.context.bot
+        invite_url = discord.utils.oauth_url(bot.user.id)
+
+        links = []
+        links.append(f"[Invite]({invite_url})")
+        links.append(f"[Support server]({bot.support_server_url})")
+        links.append(f"[Source]({bot.source_url})")
+
+        embed.add_field(name="Useful links", value=" | ".join(links))
+        
         return await destination.send(embed=embed)
 
     async def send_all_help(self, *args, **kwargs):
