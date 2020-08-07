@@ -1,2 +1,5 @@
 *.json
 *.pyc
+env/*
+app/config.py
+
