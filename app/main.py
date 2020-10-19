@@ -41,7 +41,8 @@ VALID_RANGES = (
 
 class Bot(commands.Bot):
     def __init__(self, **options):
-        super().__init__(**options)
+        intents = discord.Intents(guilds=True, messages=True)
+        super().__init__(**options, intents=intents)
         self.cache = {}
         self.support_server_url = options.pop('support_server_url')
         self.source_url = options.pop('source_url')
