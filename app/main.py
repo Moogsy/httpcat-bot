@@ -92,14 +92,12 @@ class Bot(commands.Bot):
             return await bot.process_commands(msg)
         
         if isinstance(error, commands.CommandOnCooldown):
-
-            if (ctx.command.name != "help"
+            if ctx.command.name == "http":
+                return
+            elif (ctx.command.name != "help"
                 and error.retry_after < 3):
                 await asyncio.sleep(error.retry_after)
                 return await ctx.reinvoke()
-
-            if ctx.command.name == "http":
-                return
 
         await ctx.send("{0.__class__.__name__}: {0}".format(error))
         return await super().on_command_error(ctx, error)
