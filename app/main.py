@@ -20,6 +20,8 @@ import io
 import asyncio
 import random
 
+from typing import Union
+
 import aiohttp
 import discord
 from discord.ext import commands
@@ -156,8 +158,13 @@ class UsefulHelp(commands.HelpCommand):
 bot = Bot(**config.PARAMS, help_command=UsefulHelp())
 
 @bot.command()
-async def http(ctx: commands.Context, code: int):
+async def http(ctx: commands.Context, *, code: Union[int, str] = None):
     """Shows the corresponding http cat image given a status code"""
+    if code is None:
+        code = 400
+    if isinstance(code, str):
+        code = 422
+
     if not (img := bot.cache.get(code)):
         async with bot.session.get(f"https://http.cat/{code}.jpg") as resp:
             bytes_img = await resp.read()
