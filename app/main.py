@@ -91,12 +91,13 @@ class Bot(commands.Bot):
             msg.content = f"http {msg.content}"
             return await bot.process_commands(msg)
         
-        if (isinstance(error, commands.CommandOnCooldown)
-            and ctx.command.name != "help"
-            and error.retry_after < 3):
-
-            await asyncio.sleep(error.retry_after)
-            return await ctx.reinvoke()
+        if isinstance(error, commands.CommandOnCooldown):
+            if ctx.command.name == "http":
+                return
+            elif (ctx.command.name != "help"
+                and error.retry_after < 3):
+                await asyncio.sleep(error.retry_after)
+                return await ctx.reinvoke()
 
         await ctx.send("{0.__class__.__name__}: {0}".format(error))
         return await super().on_command_error(ctx, error)
@@ -175,6 +176,11 @@ async def http(ctx: commands.Context, *, code: Union[int, str] = None):
     img.seek(0)
     file = discord.File(img, filename=f"{code}.jpg")
     await ctx.send(file=file)
+
+@http.error
+async def http_error(ctx: commands.Context, error: Exception):
+    if isinstance(error, commands.CommandOnCooldown):
+        await ctx.invoke(http, code=429)
 
 @bot.command(name="random")
 async def random_(ctx: commands.Context):
