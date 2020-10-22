@@ -186,7 +186,7 @@ async def http_error(ctx: commands.Context, error: Exception):
 async def random_(ctx: commands.Context):
     """Shows a random http cat"""
     code = random.randint(*random.choice(VALID_RANGES))
-    return await http(ctx, code)
+    return await http(ctx, code=code)
 
 bot.run()
 
