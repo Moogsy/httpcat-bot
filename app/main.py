@@ -39,12 +39,12 @@ VALID_RANGES = (
     (599, 599),
 )
 
+
 class Bot(commands.Bot):
     def __init__(self, **options):
         intents = discord.Intents(guilds=True, messages=True)
         super().__init__(**options, intents=intents)
         self.cache = {}
-        self.support_server_url = options.pop('support_server_url')
         self.source_url = options.pop('source_url')
 
         # _before_invoke is set to None somewhere in the superclass
@@ -73,7 +73,7 @@ class Bot(commands.Bot):
     def run(self, *args, **kwargs):
         """Accessing the config twice would be meh"""
         return super().run(self.__token, *args, **kwargs)
-    
+
     async def before_invoke(self, ctx: commands.Context):
         """Proper rate limiting to avoid abuse"""
         await ctx.trigger_typing()
@@ -82,7 +82,7 @@ class Bot(commands.Bot):
             bucket = cd.get_bucket(ctx.message)
             if retry_after := bucket.update_rate_limit():
                 raise commands.CommandOnCooldown(cd, retry_after)
-    
+
     async def on_command_error(self, ctx: commands.Context, error: Exception):
         """Basic error handling"""
         error = getattr(error, "original", error)
@@ -91,31 +91,37 @@ class Bot(commands.Bot):
             msg = ctx.message
             msg.content = f"http {msg.content}"
             return await bot.process_commands(msg)
-        
+
         if isinstance(error, commands.CommandOnCooldown):
             if ctx.command.name == "http":
                 return
             elif (ctx.command.name != "help"
-                and error.retry_after < 3):
+                  and error.retry_after < 3):
+
                 await asyncio.sleep(error.retry_after)
                 return await ctx.reinvoke()
 
         await ctx.send("{0.__class__.__name__}: {0}".format(error))
         return await super().on_command_error(ctx, error)
-    
+
     async def close(self, *args, **kwargs):
         await self.session.close()
         return await super().close(*args, **kwargs)
 
+
 class UsefulHelp(commands.HelpCommand):
     def __init__(self):
-        command_attrs = {"cooldown": commands.Cooldown(1, 10, commands.BucketType.member)}
+        command_attrs = {
+            "cooldown": commands.Cooldown(1, 10, commands.BucketType.member)
+        }
         super().__init__(command_attrs=command_attrs)
 
     def get_command_signature(self, command: commands.Command) -> str:
         if command.name == 'http':
             return f"{self.clean_prefix}{command.signature}"
-        return "{0.clean_prefix}{1.qualified_name} {1.signature}".format(self, command)
+
+        signature = "{0.clean_prefix}{1.qualified_name} {1.signature}"
+        return signature.format(self, command)
 
     async def send_embed(self, embed: discord.Embed) -> discord.Message:
         destination = self.get_destination()
@@ -123,20 +129,28 @@ class UsefulHelp(commands.HelpCommand):
         bot = self.context.bot
         invite_url = discord.utils.oauth_url(bot.user.id)
 
-        links = []
-        links.append(f"[Invite]({invite_url})")
-        links.append(f"[Support server]({bot.support_server_url})")
-        links.append(f"[Source]({bot.source_url})")
+        links = [
+            f"[Invite]({invite_url})",
+            f"[Source]({bot.source_url})"
+        ]
 
         embed.add_field(name="Useful links", value=" | ".join(links))
-        
+
         return await destination.send(embed=embed)
 
     async def send_all_help(self, *args, **kwargs):
         """Takes over all send_x_help that has multiple commands"""
-        all_commands = [c for c in self.context.bot.commands if c.name in {"http", "random"}]
+        all_commands = [
+            self.context.bot.get_command(command)
+            for command in ("http", "random")
+        ]
+
         embed = discord.Embed(title="Help")
-        embed.color = discord.Color.from_hsv(random.random(), random.uniform(.75, .95), 1)
+        embed.color = discord.Color.from_hsv(
+            random.random(),
+            random.uniform(.75, .95),
+            1
+        )
 
         for command in all_commands:
             name = self.get_command_signature(command)
@@ -157,7 +171,9 @@ class UsefulHelp(commands.HelpCommand):
 
         return await self.send_embed(embed)
 
+
 bot = Bot(**config.PARAMS, help_command=UsefulHelp())
+
 
 @bot.command()
 async def http(ctx: commands.Context, *, code: Union[int, str] = None):
@@ -178,10 +194,12 @@ async def http(ctx: commands.Context, *, code: Union[int, str] = None):
     file = discord.File(img, filename=f"{code}.jpg")
     await ctx.send(file=file)
 
+
 @http.error
 async def http_error(ctx: commands.Context, error: Exception):
     if isinstance(error, commands.CommandOnCooldown):
         await ctx.invoke(http, code=429)
+
 
 @bot.command(name="random")
 async def random_(ctx: commands.Context):
@@ -190,4 +208,3 @@ async def random_(ctx: commands.Context):
     return await http(ctx, code=code)
 
 bot.run()
-
